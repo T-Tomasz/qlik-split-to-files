@@ -1,0 +1,38 @@
+Sub StoreDividedTable(vTableToDivide,vDivideField, vOutputLib, vFilePrefix, vOutputFormat)  
+  
+distinct_temp:  
+LOAD DISTINCT $(vDivideField) AS value_distinct RESIDENT $(vTableToDivide);  
+  
+LET NumRows=NoOfRows('distinct_temp');  
+  
+FOR i=1 TO NumRows  
+LET value_loop = peek('value_distinct',$(i)-1, 'distinct_temp');  
+  
+    main_temp:  
+    NOCONCATENATE LOAD *  
+    RESIDENT $(vTableToDivide)  
+    WHERE $(vDivideField) = '$(value_loop)';  
+  
+    IF '$(vOutputFormat)' = 'TXT' THEN  
+      STORE main_temp  INTO [lib://$(vOutputLib)/$(vFilePrefix)$(value_loop).txt](txt, delimiter is '\t');  
+    ELSEIF '$(vOutputFormat)' = 'QVD' THEN  
+      STORE main_temp  INTO [lib://$(vOutputLib)/$(vFilePrefix)$(value_loop).qvd](qvd);  
+    ELSE  
+      TRACE Wrong output format;  
+ENDIF  
+           
+    DROP TABLE main_temp;  
+  
+NEXT  
+  
+DROP TABLE distinct_temp;  
+LET i = null();  
+LET NumRows = null();  
+LET value_loop = null();  
+LET value_loop = null();  
+  
+End Sub;  
+  
+// And all you have to do now is to call it with parameters:  
+  
+call StoreDividedTable('Orders', 'Site', 'out', 'Orders by unit - ', 'QVD');  
